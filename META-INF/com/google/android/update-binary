@@ -234,8 +234,8 @@ check_free_space
 
 ui_print "INFO: Checking battery level"
 battery="$(cat /sys/class/power_supply/bms/capacity)"
-if [ 90 -gt 0"$battery" ]; then
-  ui_print "ERROR: Low battery (${battery}%)! Please charge it to 90% or more and try again"
+if [ 70 -gt 0"$battery" ]; then
+  ui_print "ERROR: Low battery (${battery}%)! Please charge it to 70% or more and try again"
   ui_print "Refusing to continue, nothing changed yet"
   exit "$E_LOWBATTERY"
 fi
