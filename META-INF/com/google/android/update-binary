@@ -56,7 +56,7 @@ wrap_output() {
 
 check_free_space() {
   ui_print "INFO: Checking free space in $storage"
-  storage_free=$(df -P "$storage" | busybox awk '{print $4}' | tail -n 1)
+  storage_free=$(df -k "$storage" | awk '{print $4}' | tail -n 1)
   if [ $((storage_free/1024)) -lt 0$((emmc_size/1024/1024)) ]; then
       ui_print "ERROR: not enough space in $storage (have $((storage_free/1024)) Mb, want $((emmc_size/1024/1024)) Mb)"
       ui_print "Refusing to continue, nothing changed yet"
@@ -211,9 +211,9 @@ fi
 ui_print "INFO: IBL is installed"
 
 ui_print "INFO: Determining storage to use"
-df="$(busybox df -P /external_sd /usb-otg | busybox tail -n +2)"
-storage_max_free=$(echo "$df" | busybox awk '{print $4}' | sort -n | tail -n 1)
-storage=$(echo "$df" | grep "$storage_max_free" | busybox awk '{print $6}')
+df="$(df -k | tail -n +2)"
+storage_max_free=$(echo "$df" | awk '{print $4}' | sort -n | tail -n 1)
+storage=$(echo "$df" | grep "$storage_max_free" | awk '{print $6}')
 if [ q"$storage" = q ]; then
   ui_print "ERROR: Unable to select storage to use"
   ui_print "(Is SD card or USB drive connected?)"
@@ -223,13 +223,13 @@ fi
 ui_print "INFO: Will use $storage ($((storage_max_free/1024))Mb free)"
 
 ui_print "INFO: Checking $storage FS type"
-eval "$(blkid "$(mount | grep "$storage" | cut -d ' ' -f 1)" | tr ' ' '\n' | grep TYPE)"
-if [ "q$TYPE" != "qexfat" ] && [ "q$TYPE" != "qntfs" ]; then
-  ui_print "ERROR: unsupported FS on $storage: have $TYPE, want exfat or NTFS"
+fstype=$(mount | grep " $storage " | awk '{ print $5 }')
+if [ "$fstype" != "exfat" ] && [ "$fstype" != "ntfs" ]; then
+  ui_print "ERROR: unsupported FS on $storage: have $fstype, want exfat only"
   ui_print "Refusing to continue, nothing changed yet"
   exit "$E_BADSTORAGEFS"
 fi
-ui_print "INFO: Found $TYPE FS on $storage"
+ui_print "INFO: Found $fstype FS on $storage"
 
 check_free_space
 
@@ -313,7 +313,7 @@ read_partition DDR
 read_partition ssd
 
 ui_print "INFO: Dumping gzipped full eMMC image to '$FULL_DUMP'"
-if ! dd if="$EMMC_BLOCK_DEVICE" bs=1M | pigz -5 > "$FULL_DUMP"; then
+if ! dd if="$EMMC_BLOCK_DEVICE" bs=1048576 | pigz -5 > "$FULL_DUMP"; then
   ui_print "ERROR: Full eMMC backup failed!"
   ui_print "Refusing to continue, nothing changed yet"
   exit "$E_EMMCBACKUPFAILED"
